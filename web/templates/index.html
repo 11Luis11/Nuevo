@@ -1,0 +1,944 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LibreCrawl · Simple</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0d0f14;
+    --surface: #141720;
+    --surface2: #1c2030;
+    --border: #252b3b;
+    --accent: #4fffb0;
+    --accent2: #4f9fff;
+    --warn: #ffb84f;
+    --error: #ff5f6d;
+    --text: #e2e8f0;
+    --muted: #64748b;
+    --font-mono: 'JetBrains Mono', monospace;
+    --font-display: 'Syne', sans-serif;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font-mono);
+    font-size: 13px;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* HEADER */
+  header {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    padding: 16px 24px;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+
+  .logo {
+    font-family: var(--font-display);
+    font-weight: 800;
+    font-size: 20px;
+    letter-spacing: -0.5px;
+    color: var(--accent);
+    white-space: nowrap;
+  }
+  .logo span { color: var(--muted); font-weight: 400; font-size: 14px; margin-left: 6px; }
+
+  .url-bar {
+    flex: 1;
+    display: flex;
+    gap: 8px;
+    align-items: center;
+  }
+
+  .url-input {
+    flex: 1;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 9px 14px;
+    color: var(--text);
+    font-family: var(--font-mono);
+    font-size: 13px;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  .url-input:focus { border-color: var(--accent); }
+  .url-input::placeholder { color: var(--muted); }
+
+  .btn {
+    padding: 8px 18px;
+    border: none;
+    border-radius: 6px;
+    font-family: var(--font-mono);
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s;
+    white-space: nowrap;
+    letter-spacing: 0.5px;
+  }
+  .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+  .btn-go   { background: var(--accent); color: #0d0f14; }
+  .btn-go:hover:not(:disabled) { background: #6fffbe; }
+  .btn-stop { background: var(--error); color: #fff; }
+  .btn-stop:hover:not(:disabled) { background: #ff7b85; }
+  .btn-clear { background: transparent; color: var(--muted); border: 1px solid var(--border); }
+  .btn-clear:hover:not(:disabled) { border-color: var(--muted); color: var(--text); }
+  .btn-export { background: var(--surface2); color: var(--text); border: 1px solid var(--border); }
+  .btn-export:hover:not(:disabled) { border-color: var(--accent2); color: var(--accent2); }
+
+  /* STATS BAR */
+  .stats-bar {
+    display: flex;
+    gap: 0;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface);
+    overflow-x: auto;
+  }
+  .stat-pill {
+    display: flex;
+    flex-direction: column;
+    padding: 10px 22px;
+    border-right: 1px solid var(--border);
+    min-width: 100px;
+    transition: background 0.2s;
+  }
+  .stat-pill:hover { background: var(--surface2); }
+  .stat-label { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 2px; }
+  .stat-value { font-size: 18px; font-weight: 600; color: var(--accent); font-family: var(--font-display); }
+  .stat-value.orange { color: var(--warn); }
+  .stat-value.red { color: var(--error); }
+  .stat-value.blue { color: var(--accent2); }
+
+  /* PROGRESS */
+  .progress-wrap {
+    background: var(--border);
+    position: relative;
+    overflow: hidden;
+    height: 28px;
+    display: flex;
+    align-items: center;
+  }
+  .progress-bar {
+    position: absolute;
+    left: 0; top: 0; bottom: 0;
+    background: rgba(79,255,176,0.18);
+    width: 0%;
+    transition: width 0.6s ease;
+  }
+  .progress-bar.indeterminate {
+    width: 18%;
+    animation: slide 1.4s infinite ease-in-out;
+    background: rgba(79,255,176,0.12);
+  }
+  .progress-label {
+    position: relative;
+    z-index: 1;
+    padding: 0 16px;
+    font-size: 12px;
+    color: var(--accent);
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+  }
+  .progress-pct {
+    font-size: 15px;
+    font-weight: 600;
+    min-width: 46px;
+  }
+  .progress-detail {
+    color: var(--muted);
+    font-size: 11px;
+    font-weight: 400;
+  }
+  .progress-eta {
+    margin-left: auto;
+    color: var(--muted);
+    font-size: 11px;
+  }
+  @keyframes slide {
+    0%   { transform: translateX(-200%); }
+    100% { transform: translateX(700%); }
+  }
+
+  /* STATUS BAR */
+  .status-line {
+    padding: 5px 24px;
+    font-size: 11px;
+    color: var(--muted);
+    background: var(--bg);
+    border-bottom: 1px solid var(--border);
+    min-height: 24px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .status-dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--muted);
+    flex-shrink: 0;
+  }
+  .status-dot.active { background: var(--accent); animation: pulse 1s infinite; }
+  .status-dot.error  { background: var(--error); }
+  @keyframes pulse { 0%,100% { opacity:1; } 50% { opacity:0.3; } }
+
+  /* TABS */
+  .tab-nav {
+    display: flex;
+    gap: 0;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    overflow-x: auto;
+  }
+  .tab-btn {
+    padding: 10px 20px;
+    background: none;
+    border: none;
+    color: var(--muted);
+    font-family: var(--font-mono);
+    font-size: 12px;
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    transition: all 0.15s;
+    white-space: nowrap;
+    font-weight: 500;
+  }
+  .tab-btn:hover { color: var(--text); }
+  .tab-btn.active { color: var(--accent); border-bottom-color: var(--accent); }
+  .tab-count {
+    display: inline-block;
+    background: var(--surface2);
+    border-radius: 10px;
+    padding: 1px 7px;
+    font-size: 10px;
+    margin-left: 6px;
+    color: var(--muted);
+  }
+  .tab-btn.active .tab-count { background: rgba(79,255,176,0.15); color: var(--accent); }
+
+  /* TABLE */
+  .table-wrap {
+    overflow: auto;
+    height: calc(100vh - 215px);
+  }
+  .tab-pane { display: none; }
+  .tab-pane.active { display: block; }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12px;
+  }
+  thead { position: sticky; top: 0; z-index: 10; }
+  th {
+    background: var(--surface);
+    color: var(--muted);
+    text-align: left;
+    padding: 9px 12px;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    border-bottom: 1px solid var(--border);
+    font-weight: 600;
+    white-space: nowrap;
+    cursor: pointer;
+    user-select: none;
+  }
+  th:hover { color: var(--text); }
+  th.sorted { color: var(--accent); }
+
+  td {
+    padding: 8px 12px;
+    border-bottom: 1px solid rgba(37,43,59,0.6);
+    color: var(--text);
+    max-width: 280px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    vertical-align: middle;
+  }
+  tr:hover td { background: var(--surface2); }
+
+  .td-url {
+    color: var(--accent2);
+    font-size: 11px;
+    max-width: 320px;
+    cursor: pointer;
+  }
+  .td-url:hover { text-decoration: underline; }
+
+  /* BADGES */
+  .badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 600;
+    font-family: var(--font-mono);
+  }
+  .badge-2xx { background: rgba(79,255,176,0.12); color: var(--accent); }
+  .badge-3xx { background: rgba(255,184,79,0.12); color: var(--warn); }
+  .badge-4xx { background: rgba(255,95,109,0.12); color: var(--error); }
+  .badge-5xx { background: rgba(255,95,109,0.2);  color: var(--error); border: 1px solid var(--error); }
+  .badge-ok { background: rgba(79,255,176,0.1); color: var(--accent); }
+  .badge-miss { background: rgba(255,95,109,0.1); color: var(--error); }
+
+  /* ISSUE BADGES */
+  .issue-critical { background: rgba(255,95,109,0.15); color: var(--error); }
+  .issue-warning   { background: rgba(255,184,79,0.15); color: var(--warn); }
+  .issue-info      { background: rgba(79,159,255,0.15); color: var(--accent2); }
+
+  /* EMPTY STATE */
+  .empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 300px;
+    color: var(--muted);
+    gap: 10px;
+  }
+  .empty-icon { font-size: 42px; opacity: 0.3; }
+  .empty-text { font-size: 13px; }
+
+  /* SEARCH */
+  .table-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 16px;
+    background: var(--bg);
+    border-bottom: 1px solid var(--border);
+  }
+  .search-input {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 5px;
+    padding: 6px 12px;
+    color: var(--text);
+    font-family: var(--font-mono);
+    font-size: 12px;
+    outline: none;
+    width: 260px;
+    transition: border-color 0.2s;
+  }
+  .search-input:focus { border-color: var(--accent); }
+  .search-input::placeholder { color: var(--muted); }
+  .toolbar-info { color: var(--muted); font-size: 11px; margin-left: auto; }
+
+  /* PAGINATION */
+  .pager {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 16px;
+    border-top: 1px solid rgba(37,43,59,0.6);
+    background: var(--bg);
+    font-size: 12px;
+    color: var(--muted);
+  }
+  .pager button {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--text);
+    border-radius: 5px;
+    padding: 4px 12px;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    cursor: pointer;
+    transition: border-color 0.15s;
+  }
+  .pager button:hover:not(:disabled) { border-color: var(--accent); color: var(--accent); }
+  .pager button:disabled { opacity: 0.3; cursor: not-allowed; }
+  .pager-info { color: var(--muted); font-size: 11px; }
+
+  /* SCROLLBAR */
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: var(--bg); }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+  ::-webkit-scrollbar-thumb:hover { background: var(--muted); }
+
+  /* TOOLTIP */
+  .tip {
+    position: fixed;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 8px 12px;
+    font-size: 11px;
+    color: var(--text);
+    z-index: 999;
+    pointer-events: none;
+    max-width: 360px;
+    word-break: break-all;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+    display: none;
+  }
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header>
+  <div class="logo">LibreCrawl <span>· simple</span></div>
+  <div class="url-bar">
+    <input class="url-input" id="urlInput" type="url" placeholder="https://ejemplo.com" />
+    <button class="btn btn-go"    id="startBtn"  onclick="startCrawl()">▶ Crawl</button>
+    <button class="btn btn-stop"  id="stopBtn"   onclick="stopCrawl()" disabled>■ Stop</button>
+    <button class="btn btn-clear" id="clearBtn"  onclick="clearData()">✕ Limpiar</button>
+    <button class="btn btn-export" onclick="exportCSV()">↓ CSV</button>
+  </div>
+</header>
+
+<!-- PROGRESS -->
+<div class="progress-wrap" id="progressWrap" style="display:none">
+  <div class="progress-bar" id="progressBar"></div>
+  <div class="progress-label">
+    <span class="progress-pct" id="progressPct">0%</span>
+    <span class="progress-detail" id="progressDetail">Iniciando…</span>
+    <span class="progress-eta" id="progressEta"></span>
+  </div>
+</div>
+
+<!-- STATS BAR -->
+<div class="stats-bar">
+  <div class="stat-pill">
+    <div class="stat-label">Rastreadas</div>
+    <div class="stat-value" id="statCrawled">0</div>
+  </div>
+  <div class="stat-pill">
+    <div class="stat-label">Descubiertas</div>
+    <div class="stat-value blue" id="statDiscovered">0</div>
+  </div>
+  <div class="stat-pill">
+    <div class="stat-label">Errores</div>
+    <div class="stat-value red" id="statErrors">0</div>
+  </div>
+  <div class="stat-pill">
+    <div class="stat-label">Problemas SEO</div>
+    <div class="stat-value orange" id="statIssues">0</div>
+  </div>
+  <div class="stat-pill">
+    <div class="stat-label">Velocidad</div>
+    <div class="stat-value" id="statSpeed">0/s</div>
+  </div>
+  <div class="stat-pill">
+    <div class="stat-label">Profundidad</div>
+    <div class="stat-value" id="statDepth">0</div>
+  </div>
+</div>
+
+<!-- STATUS LINE -->
+<div class="status-line">
+  <div class="status-dot" id="statusDot"></div>
+  <span id="statusText">Esperando URL para iniciar el crawl…</span>
+</div>
+
+<!-- TABS -->
+<div class="tab-nav">
+  <button class="tab-btn active" onclick="switchTab('overview')">
+    Páginas <span class="tab-count" id="tc-overview">0</span>
+  </button>
+  <button class="tab-btn" onclick="switchTab('issues')">
+    Problemas SEO <span class="tab-count" id="tc-issues">0</span>
+  </button>
+  <button class="tab-btn" onclick="switchTab('errors')">
+    Errores HTTP <span class="tab-count" id="tc-errors">0</span>
+  </button>
+  <button class="tab-btn" onclick="switchTab('external')">
+    Links Externos <span class="tab-count" id="tc-external">0</span>
+  </button>
+</div>
+
+<!-- TABLE TOOLBAR -->
+<div class="table-toolbar">
+  <input class="search-input" id="searchInput" type="text" placeholder="🔍  Filtrar por URL o texto…" oninput="filterTable()" />
+  <span class="toolbar-info" id="toolbarInfo">–</span>
+</div>
+
+<!-- TAB PANES -->
+<div class="table-wrap">
+
+  <!-- OVERVIEW -->
+  <div class="tab-pane active" id="tab-overview">
+    <table id="overviewTable">
+      <thead>
+        <tr>
+          <th onclick="sortTable('overview','url')">URL</th>
+          <th onclick="sortTable('overview','status')">Status</th>
+          <th onclick="sortTable('overview','title')">Título</th>
+          <th onclick="sortTable('overview','meta')">Meta Desc.</th>
+          <th onclick="sortTable('overview','h1')">H1</th>
+          <th onclick="sortTable('overview','response')">Resp. (ms)</th>
+          <th onclick="sortTable('overview','words')">Palabras</th>
+          <th onclick="sortTable('overview','links')">Links Int/Ext</th>
+        </tr>
+      </thead>
+      <tbody id="overviewBody"></tbody>
+    </table>
+    <div class="empty" id="emptyOverview">
+      <div class="empty-icon">🕷️</div>
+      <div class="empty-text">Introduce una URL y haz clic en Crawl</div>
+    </div>
+  </div>
+
+  <!-- ISSUES -->
+  <div class="tab-pane" id="tab-issues">
+    <table id="issuesTable">
+      <thead>
+        <tr>
+          <th onclick="sortTable('issues','url')">URL</th>
+          <th onclick="sortTable('issues','type')">Tipo</th>
+          <th onclick="sortTable('issues','category')">Categoría</th>
+          <th onclick="sortTable('issues','issue')">Problema</th>
+          <th onclick="sortTable('issues','details')">Detalles</th>
+        </tr>
+      </thead>
+      <tbody id="issuesBody"></tbody>
+    </table>
+    <div class="empty" id="emptyIssues">
+      <div class="empty-icon">✅</div>
+      <div class="empty-text">Sin problemas SEO detectados aún</div>
+    </div>
+  </div>
+
+  <!-- ERRORS -->
+  <div class="tab-pane" id="tab-errors">
+    <table id="errorsTable">
+      <thead>
+        <tr>
+          <th onclick="sortTable('errors','url')">URL</th>
+          <th onclick="sortTable('errors','status')">Status</th>
+          <th onclick="sortTable('errors','response')">Resp. (ms)</th>
+          <th onclick="sortTable('errors','title')">Título</th>
+        </tr>
+      </thead>
+      <tbody id="errorsBody"></tbody>
+    </table>
+    <div class="empty" id="emptyErrors">
+      <div class="empty-icon">✅</div>
+      <div class="empty-text">Sin errores HTTP</div>
+    </div>
+  </div>
+
+  <!-- EXTERNAL LINKS -->
+  <div class="tab-pane" id="tab-external">
+    <table id="externalTable">
+      <thead>
+        <tr>
+          <th onclick="sortTable('external','url')">URL Destino</th>
+          <th onclick="sortTable('external','status')">Status</th>
+          <th onclick="sortTable('external','source')">Encontrado en</th>
+          <th onclick="sortTable('external','anchor')">Anchor Text</th>
+        </tr>
+      </thead>
+      <tbody id="externalBody"></tbody>
+    </table>
+    <div class="empty" id="emptyExternal">
+      <div class="empty-icon">🔗</div>
+      <div class="empty-text">Sin links externos aún</div>
+    </div>
+  </div>
+
+</div>
+
+<!-- PAGER -->
+<div class="pager" id="pager" style="display:none">
+  <button id="pgPrev" onclick="changePage(-1)">← Anterior</button>
+  <span class="pager-info" id="pgInfo"></span>
+  <button id="pgNext" onclick="changePage(1)">Siguiente →</button>
+</div>
+
+<!-- TOOLTIP -->
+<div class="tip" id="tooltip"></div>
+
+<script>
+// ─── STATE ───────────────────────────────────────────────────────────────────
+const PAGE_SIZE = 200;
+const state = {
+  urls: [],
+  issues: [],
+  links: [],
+  crawling: false,
+  pollInterval: null,
+  currentTab: 'overview',
+  sortCol: {},
+  sortDir: {},
+  filterText: '',
+  page: { overview: 1, issues: 1, errors: 1, external: 1 },
+  crawlStart: null,
+  urlOffset: 0, issueOffset: 0, linkOffset: 0,
+};
+
+// ─── API ──────────────────────────────────────────────────────────────────────
+async function api(path, opts = {}) {
+  try {
+    const r = await fetch(path, { ...opts, headers: { 'Content-Type': 'application/json', ...(opts.headers||{}) } });
+    return await r.json();
+  } catch(e) {
+    return { error: e.message };
+  }
+}
+
+// ─── CRAWL CONTROLS ───────────────────────────────────────────────────────────
+async function startCrawl() {
+  const url = document.getElementById('urlInput').value.trim();
+  if (!url) { setStatus('Introduce una URL válida', 'error'); return; }
+  const data = await api('/api/start_crawl', {
+    method: 'POST',
+    body: JSON.stringify({ url, settings: { maxDepth: 3, maxUrls: 500, delay: 200 } })
+  });
+  if (data.error) { setStatus('Error: ' + data.error, 'error'); return; }
+  state.crawling = true;
+  state.crawlStart = Date.now();
+  state.urlOffset = 0; state.issueOffset = 0; state.linkOffset = 0;
+  document.getElementById('startBtn').disabled = true;
+  document.getElementById('stopBtn').disabled = false;
+  document.getElementById('progressWrap').style.display = '';
+  document.getElementById('progressBar').classList.add('indeterminate');
+  setStatus('Crawling: ' + url, 'active');
+  state.pollInterval = setInterval(poll, 1500);
+}
+
+async function stopCrawl() {
+  await api('/api/stop_crawl', { method: 'POST' });
+  finishCrawl('Detenido por el usuario.');
+}
+
+function finishCrawl(msg) {
+  state.crawling = false;
+  clearInterval(state.pollInterval);
+  document.getElementById('startBtn').disabled = false;
+  document.getElementById('stopBtn').disabled = true;
+  document.getElementById('progressBar').classList.remove('indeterminate');
+  document.getElementById('progressBar').style.width = '100%';
+  document.getElementById('progressPct').textContent = '100%';
+  document.getElementById('progressDetail').textContent = state.urls.length + ' páginas · completado';
+  document.getElementById('progressEta').textContent = '';
+  setStatus(msg || 'Crawl finalizado.', 'idle');
+  setTimeout(() => { document.getElementById('progressWrap').style.display = 'none'; }, 3000);
+}
+
+function clearData() {
+  state.urls = []; state.issues = []; state.links = [];
+  ['overviewBody','issuesBody','errorsBody','externalBody'].forEach(id => document.getElementById(id).innerHTML = '');
+  updateStats({ crawled:0, discovered:0, depth:0, urlsPerSecond:0 });
+  updateCounts();
+  setStatus('Datos limpiados.', 'idle');
+}
+
+// ─── POLL ─────────────────────────────────────────────────────────────────────
+async function poll() {
+  const params = new URLSearchParams({
+    url_since: state.urlOffset || 0,
+    issue_since: state.issueOffset || 0,
+    link_since: state.linkOffset || 0
+  });
+  const data = await api('/api/crawl_status?' + params);
+  if (data.error) return;
+
+  const stats = data.stats || {};
+
+  // Accumulate incremental data
+  const newUrls = data.urls || [];
+  const newIssues = data.issues || [];
+  const newLinks = data.links || [];
+  state.urls.push(...newUrls);
+  state.issues.push(...newIssues);
+  state.links.push(...newLinks);
+  state.urlOffset = (state.urlOffset||0) + newUrls.length;
+  state.issueOffset = (state.issueOffset||0) + newIssues.length;
+  state.linkOffset = (state.linkOffset||0) + newLinks.length;
+
+  // Update progress bar
+  const crawled = stats.crawled || state.urls.length;
+  const discovered = stats.discovered || crawled || 1;
+  const pct = Math.min(100, Math.round((crawled / discovered) * 100));
+  const bar = document.getElementById('progressBar');
+  if (pct > 0) {
+    bar.classList.remove('indeterminate');
+    bar.style.width = pct + '%';
+  }
+  document.getElementById('progressPct').textContent = pct + '%';
+  document.getElementById('progressDetail').textContent =
+    crawled + ' / ' + discovered + ' páginas';
+
+  // ETA
+  const elapsed = (Date.now() - (state.crawlStart||Date.now())) / 1000;
+  const rate = crawled / Math.max(elapsed, 1);
+  const remaining = (discovered - crawled) / Math.max(rate, 0.1);
+  if (pct > 5 && pct < 99 && remaining < 3600) {
+    const m = Math.floor(remaining/60), s = Math.round(remaining%60);
+    document.getElementById('progressEta').textContent =
+      'ETA ' + (m > 0 ? m+'m ' : '') + s+'s';
+  } else {
+    document.getElementById('progressEta').textContent = '';
+  }
+
+  updateStats(stats);
+  if (newUrls.length || newIssues.length || newLinks.length) {
+    renderCurrentTab();
+  }
+  updateCounts();
+
+  if (stats.status === 'completed' || stats.status === 'stopped') {
+    finishCrawl('Crawl completado · ' + state.urls.length + ' páginas');
+  }
+}
+
+// ─── RENDER ───────────────────────────────────────────────────────────────────
+function esc(s) {
+  if (!s) return '';
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function statusBadge(code) {
+  if (!code) return '<span class="badge badge-miss">–</span>';
+  const c = String(code);
+  if (c.startsWith('2')) return `<span class="badge badge-2xx">${code}</span>`;
+  if (c.startsWith('3')) return `<span class="badge badge-3xx">${code}</span>`;
+  if (c.startsWith('4')) return `<span class="badge badge-4xx">${code}</span>`;
+  if (c.startsWith('5')) return `<span class="badge badge-5xx">${code}</span>`;
+  return `<span class="badge">${code}</span>`;
+}
+
+function presentBadge(val, good='✓', bad='✗') {
+  return val ? `<span class="badge badge-ok">${good}</span>` : `<span class="badge badge-miss">${bad}</span>`;
+}
+
+function paginate(arr, tab) {
+  const p = state.page[tab] || 1;
+  const total = Math.max(1, Math.ceil(arr.length / PAGE_SIZE));
+  state.page[tab] = Math.min(p, total);
+  const start = (state.page[tab]-1)*PAGE_SIZE;
+  const pager = document.getElementById('pager');
+  if (arr.length > PAGE_SIZE) {
+    pager.style.display = '';
+    document.getElementById('pgPrev').disabled = state.page[tab] <= 1;
+    document.getElementById('pgNext').disabled = state.page[tab] >= total;
+    document.getElementById('pgInfo').textContent =
+      'Página ' + state.page[tab] + ' de ' + total + ' · ' + arr.length + ' resultados';
+  } else {
+    pager.style.display = 'none';
+  }
+  return arr.slice(start, start + PAGE_SIZE);
+}
+
+function changePage(dir) {
+  const t = state.currentTab;
+  state.page[t] = Math.max(1, (state.page[t]||1) + dir);
+  renderCurrentTab();
+}
+
+function renderOverview() {
+  const q = state.filterText.toLowerCase();
+  const all = state.urls.filter(u => !q || u.address?.toLowerCase().includes(q) || u.title?.toLowerCase().includes(q));
+  const rows = paginate(all, 'overview');
+  const tbody = document.getElementById('overviewBody');
+  tbody.innerHTML = rows.map(u => `
+    <tr>
+      <td class="td-url" title="${esc(u.address)}" onclick="copyUrl('${esc(u.address)}')">${esc(truncate(u.address, 60))}</td>
+      <td>${statusBadge(u.status_code)}</td>
+      <td title="${esc(u.title)}">${esc(truncate(u.title, 45)) || '<span style="color:var(--error)">Sin título</span>'}</td>
+      <td>${presentBadge(u.meta_description)}</td>
+      <td title="${esc(u.h1)}">${esc(truncate(u.h1, 40)) || '<span style="color:var(--muted)">–</span>'}</td>
+      <td style="color:${respColor(u.response_time)}">${u.response_time ? u.response_time+'ms' : '–'}</td>
+      <td>${u.word_count || '–'}</td>
+      <td>${(u.internal_links||0)}/<span style="color:var(--muted)">${(u.external_links||0)}</span></td>
+    </tr>`).join('');
+  document.getElementById('emptyOverview').style.display = all.length ? 'none' : '';
+}
+
+function renderIssues() {
+  const q = state.filterText.toLowerCase();
+  const all = state.issues.filter(i => !q || i.url?.toLowerCase().includes(q) || i.issue?.toLowerCase().includes(q));
+  const rows = paginate(all, 'issues');
+  const tbody = document.getElementById('issuesBody');
+  tbody.innerHTML = rows.map(i => {
+    const cls = i.type === 'error' ? 'issue-critical' : i.type === 'warning' ? 'issue-warning' : 'issue-info';
+    return `<tr>
+      <td class="td-url" title="${esc(i.url)}" onclick="copyUrl('${esc(i.url)}')">${esc(truncate(i.url, 55))}</td>
+      <td><span class="badge ${cls}">${esc(i.type||'info')}</span></td>
+      <td>${esc(i.category||'–')}</td>
+      <td>${esc(i.issue||'–')}</td>
+      <td title="${esc(i.details)}">${esc(truncate(i.details, 55)) || '–'}</td>
+    </tr>`;
+  }).join('');
+  document.getElementById('emptyIssues').style.display = all.length ? 'none' : '';
+}
+
+function renderErrors() {
+  const q = state.filterText.toLowerCase();
+  const all = state.urls.filter(u => {
+    const c = u.status_code;
+    return (c >= 400 || !c) && (!q || u.address?.toLowerCase().includes(q));
+  });
+  const rows = paginate(all, 'errors');
+  const tbody = document.getElementById('errorsBody');
+  tbody.innerHTML = rows.map(u => `
+    <tr>
+      <td class="td-url" title="${esc(u.address)}" onclick="copyUrl('${esc(u.address)}')">${esc(truncate(u.address,60))}</td>
+      <td>${statusBadge(u.status_code)}</td>
+      <td style="color:${respColor(u.response_time)}">${u.response_time ? u.response_time+'ms' : '–'}</td>
+      <td>${esc(truncate(u.title, 45)) || '–'}</td>
+    </tr>`).join('');
+  document.getElementById('emptyErrors').style.display = all.length ? 'none' : '';
+}
+
+function renderExternal() {
+  const q = state.filterText.toLowerCase();
+  const all = state.links.filter(l => l.type === 'external' && (!q || l.destination?.toLowerCase().includes(q)));
+  const rows = paginate(all, 'external');
+  const tbody = document.getElementById('externalBody');
+  tbody.innerHTML = rows.map(l => `
+    <tr>
+      <td class="td-url" title="${esc(l.destination)}" onclick="copyUrl('${esc(l.destination)}')">${esc(truncate(l.destination,55))}</td>
+      <td>${statusBadge(l.status_code)}</td>
+      <td class="td-url" title="${esc(l.origin)}" onclick="copyUrl('${esc(l.origin)}')">${esc(truncate(l.origin,50))}</td>
+      <td title="${esc(l.anchor_text)}">${esc(truncate(l.anchor_text,40)) || '<span style="color:var(--muted)">–</span>'}</td>
+    </tr>`).join('');
+  document.getElementById('emptyExternal').style.display = all.length ? 'none' : '';
+}
+
+function renderCurrentTab() {
+  const t = state.currentTab;
+  if (t === 'overview')  renderOverview();
+  if (t === 'issues')    renderIssues();
+  if (t === 'errors')    renderErrors();
+  if (t === 'external')  renderExternal();
+}
+
+// ─── HELPERS ──────────────────────────────────────────────────────────────────
+function truncate(s, n) { if (!s) return ''; return s.length > n ? s.slice(0,n)+'…' : s; }
+
+function respColor(ms) {
+  if (!ms) return 'var(--muted)';
+  if (ms < 500) return 'var(--accent)';
+  if (ms < 1500) return 'var(--warn)';
+  return 'var(--error)';
+}
+
+function setStatus(msg, type) {
+  document.getElementById('statusText').textContent = msg;
+  const dot = document.getElementById('statusDot');
+  dot.className = 'status-dot' + (type === 'active' ? ' active' : type === 'error' ? ' error' : '');
+}
+
+function updateStats(s) {
+  document.getElementById('statCrawled').textContent    = s.crawled ?? 0;
+  document.getElementById('statDiscovered').textContent = s.discovered ?? 0;
+  document.getElementById('statDepth').textContent      = s.depth ?? 0;
+  document.getElementById('statSpeed').textContent      = (s.urlsPerSecond ?? 0).toFixed(1)+'/s';
+  // errors = 4xx+5xx count
+  const errs = state.urls.filter(u => u.status_code >= 400).length;
+  document.getElementById('statErrors').textContent  = errs;
+  document.getElementById('statIssues').textContent  = state.issues.length;
+}
+
+function updateCounts() {
+  document.getElementById('tc-overview').textContent = state.urls.length;
+  document.getElementById('tc-issues').textContent   = state.issues.length;
+  document.getElementById('tc-errors').textContent   = state.urls.filter(u => u.status_code >= 400).length;
+  document.getElementById('tc-external').textContent = state.links.filter(l => l.type === 'external').length;
+
+  const visible = getVisibleCount();
+  document.getElementById('toolbarInfo').textContent = visible !== null ? `${visible} resultado${visible!==1?'s':''} visibles` : '';
+}
+
+function getVisibleCount() {
+  const t = state.currentTab;
+  const q = state.filterText.toLowerCase();
+  if (!q) return null;
+  if (t === 'overview') return state.urls.filter(u => u.address?.toLowerCase().includes(q)||u.title?.toLowerCase().includes(q)).length;
+  if (t === 'issues')   return state.issues.filter(i => i.url?.toLowerCase().includes(q)||i.issue?.toLowerCase().includes(q)).length;
+  if (t === 'errors')   return state.urls.filter(u => u.status_code>=400 && u.address?.toLowerCase().includes(q)).length;
+  if (t === 'external') return state.links.filter(l => l.type==='external' && l.destination?.toLowerCase().includes(q)).length;
+}
+
+// ─── TABS ─────────────────────────────────────────────────────────────────────
+function switchTab(tab) {
+  state.currentTab = tab;
+  document.querySelectorAll('.tab-btn').forEach((b,i) => {
+    const tabs = ['overview','issues','errors','external'];
+    b.classList.toggle('active', tabs[i] === tab);
+  });
+  document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+  document.getElementById('tab-' + tab).classList.add('active');
+  renderCurrentTab();
+  updateCounts();
+}
+
+// ─── FILTER ───────────────────────────────────────────────────────────────────
+function filterTable() {
+  state.filterText = document.getElementById('searchInput').value;
+  renderCurrentTab();
+  updateCounts();
+}
+
+// ─── SORT ─────────────────────────────────────────────────────────────────────
+function sortTable(tab, col) {
+  const dir = state.sortCol[tab] === col ? (state.sortDir[tab] === 'asc' ? 'desc' : 'asc') : 'asc';
+  state.sortCol[tab] = col; state.sortDir[tab] = dir;
+  const key = { url:'address', status:'status_code', title:'title', meta:'meta_description',
+                h1:'h1', response:'response_time', words:'word_count', links:'internal_links',
+                type:'type', category:'category', issue:'issue', details:'details',
+                source:'origin', anchor:'anchor_text' }[col] || col;
+  const arr = tab === 'issues' ? state.issues : tab === 'external' ? state.links : state.urls;
+  arr.sort((a,b) => {
+    const va = a[key] ?? ''; const vb = b[key] ?? '';
+    if (typeof va === 'number') return dir === 'asc' ? va-vb : vb-va;
+    return dir === 'asc' ? String(va).localeCompare(String(vb)) : String(vb).localeCompare(String(va));
+  });
+  renderCurrentTab();
+}
+
+// ─── EXPORT ───────────────────────────────────────────────────────────────────
+function exportCSV() {
+  const cols = ['address','status_code','title','meta_description','h1','response_time','word_count','internal_links','external_links'];
+  const header = cols.join(',');
+  const rows = state.urls.map(u => cols.map(c => `"${String(u[c]||'').replace(/"/g,'""')}"`).join(','));
+  const blob = new Blob([header+'\n'+rows.join('\n')], { type: 'text/csv' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'crawl-' + Date.now() + '.csv';
+  a.click();
+}
+
+// ─── COPY URL ─────────────────────────────────────────────────────────────────
+function copyUrl(url) {
+  navigator.clipboard.writeText(url).catch(() => {});
+  showTooltip(url, event);
+}
+
+function showTooltip(text, e) {
+  const tip = document.getElementById('tooltip');
+  tip.textContent = '📋 Copiado: ' + text;
+  tip.style.display = 'block';
+  tip.style.left = Math.min(e.clientX + 10, window.innerWidth - 370) + 'px';
+  tip.style.top  = (e.clientY - 36) + 'px';
+  setTimeout(() => { tip.style.display = 'none'; }, 1800);
+}
+
+// ─── ENTER KEY ────────────────────────────────────────────────────────────────
+document.getElementById('urlInput').addEventListener('keydown', e => {
+  if (e.key === 'Enter') startCrawl();
+});
+</script>
+</body>
+</html>
