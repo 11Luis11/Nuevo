@@ -16,10 +16,10 @@ results = crawler.get_status().get("urls", [])
 dominio = urlparse(URL).netloc
 
 conn = mysql.connector.connect(
-    host="TU_HOST_CPANEL",
-    user="crawler_user",
-    password="TU_PASSWORD_REAL",
-    database="crawler_db"
+    host="localhost",
+    user="globalpe_crawler_user",
+    password="@11Nuevo11",
+    database="globalpe_crawler_db"
 )
 
 cursor = conn.cursor()
